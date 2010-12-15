@@ -1,26 +1,25 @@
-# ABSTRACT: Bioperl-compatible wrapper for locally running Unafold's hybrid_ss command.
+# ABSTRACT: Bioperl-compatible wrapper for Unafold hybrid-ss-min
 
 =head1 NAME
 
-Bio::Tools::Run::Unafold::hybrid_ss - bioperl wrapper for hybrid_ss
+Bio::Tools::Run::Unafold::hybrid_ss_min - Bioperl-compatible wrapper for Unafold hybrid-ss-min
 
 =head1 SYNOPSIS
 
- my $folder = Bio::Tools::Run::Unafold::hybrid_ss->new();
- my $folder->set_param(
-
+my $folder = Bio::Tools::Run::Unafold::hybrid_ss_min->new();
+my $params = {};
+$folder->run($params);
 
 =head1 DESCRIPTION
 
-A Bioperl-compatible wrapper for locally running Unafold's hybrid_ss command
+Bioperl-compatible wrapper for Unafold hybrid-ss-min
 
 =cut 
-
 use strict;
 use warnings;
-package Bio::Tools::Run::Unafold::hybrid_ss;
+package Bio::Tools::Run::Unafold::hybrid_ss_min;
 
-use base qw(Bio::Tools::Run::Unafold::Base);
+
 
 
 =head2 parameters
@@ -33,7 +32,7 @@ Args     : None
 
 =cut
 
-{ # scope forces  variable access through accessor. 
+BEGIN { 
   my $Parameters = {
 		    NA          => 'Nucleic Acid. RNA | DNA. Default is RNA',
 		    tmin        => 'Minimum Temperature. Default is 0',
@@ -48,6 +47,7 @@ Args     : None
 		    force       => 'Force all basepairs in the helix from i,j to i+k-1,j-k+1. If j is 0, forces bases i to i+k-1 to be double-stranded; if i is 0, forces bases j to j-k+1 to be double-stranded. k defaults to 1',
 		    energyOnly  => 'Skips computation of probabilities. Boolean',
 		    noisolate   => 'Prohibit all isolated basepairs. Isolated basepairs are helices of length 2; that is, they do not stack on another basepair on either side. Boolean',
+		    mfold       => '[P,W,MAX], perform multiple (suboptimal) tracebacks in the style of mfold. P indicates the percent suboptimality to consider; only structures with energies within P% of the minimum will be output. W indicates the window size; a structure must have at least W basepairs that are each a distance of at least W away from any basepair in a previous structure. MAX represents an absolute limit on the number of structures computed.',
 		    zip         => 'Force zipping up of helices by forcing single-stranded bases to dangle on adjacent basepairs when possible. Boolean',
 		    tracebacks  => 'Computes the given number of stochastic tracebacks. Computed according to the Boltzmann probability distribution so that the probability of a structure is its Boltzmann factor divided by the partition function',
 		    maxbp       => 'Bases further apart than the specified number cannot form. Default is no limit',
@@ -55,27 +55,22 @@ Args     : None
 		    maxloop     => 'Maximum size of bulge/interior loops. Default is 30',
 		    nodangle    => 'Removes single-base stacking from consideration. Boolean',
 		    simple      => 'Makes the penalty for multibranch loops constant rather than affine. Boolean',
-		    prefilter   => 'Filter our all basepairs except those in groups of '
-		    
---prefilter=value1[,value2]
-Sets the prefilter to filter out all basepairs except those in groups of value2 adjacent basepairs of which value1 can form. value2 is the same as value1 if unspecified. Default is 2 of 2. (See also the --noisolate option above.)
---nopostfilter
-Disables the postfilter. The postfilter, which is enabled by default, removes from consideration all structures that consist of only one basepair.
-Environment
-
-
+		    prefilter   => 'Filter our all basepairs except those in groups of ',
+		    circular    => 'treat sequences as circular rather than linear',
+		    stream      => 'read sequences from STDIN rather than a file. Implies quiet.',
+		    quiet       => 'In quiet mode hybrid-ss-min interprets the arguments on the command line as sequences themselves, rather than as names of files containing sequences. In addition, no files are written and standard output consists only of the free energies.'
 		   }
-  sub method_name{
-    return $Parameters;
-  }
-}
 
-# don't use autoload. Add subs direct to typeglob:
-# in which case it is totally worth having a base class?
+    
+    sub parameters{
+      return $Parameters;
+    }
 
-#*foo = sub { print "Here I am!\n" };
-#foo();
+  } # BEGIN
 
+
+# create getters/setters for all of the valid parameters:
+__PACKAGE__->mk_accessors( keys __PACKAGE__->parameters );
 
 =head1 FEEDBACK
 
