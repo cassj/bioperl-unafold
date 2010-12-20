@@ -6,7 +6,7 @@ Bio::Tools::Run::Unafold::Base - Base class for Bioperl compatible Unafold wrapp
 
 =head1 SYNOPSIS
 
-Do not attempt to directly instantiate objects from this class. 
+Do not attempt to directly instantiate objects from this class.
 Use the appropriate subclass.
 
 
@@ -18,18 +18,87 @@ Base class for Bioperl compatible Unafold wrappers
 
 use strict;
 use warnings;
+
 package Bio::Tools::Run::Unafold::Base;
+use base 'Bio::Tools::Run::WrapperBase';
 
-use base qw('Class::Accessor','Bio::Tools::Run::Wrapper::Base');
+#
+# __PACKAGE__->_set_parameters($param_hash);
+#
+
+# Creates accessors for arguments for all valid parameters
+# $self->valid_parameters
+# $self->is_valid_parameter($param_name)
 
 
-sub new{
+=head2 _register_parameters
+
+Title    : _register_parameters
+Usage    : package MyWrapperClass;
+           use base 'Bio::Tools::Run::Unafold::Base';
+           my $Parameters = {foo => 'A description of foo', bar => 'A description of bar'};
+           __PACKAGE__->_register_parameters($Parameters);
+Function : Creates class methods valid_parameters and is_valid_parameter($name)
+           and accessors for each of your parameter names in which to store argument values.
+Returns  : 1 to indicate success.
+Args     : None
+
+
+=cut
+sub _register_parameters{
+    my $class = shift;
+    &class::throw("_mk_param_accessors is a class method. If you're calling it from an object you're doing it wrong.") if ref($class);
+    my $params = shift || {};
+
+    my $valid_parameters = sub { return keys %{$params}; };
+
+    my $is_valid_parameter = sub {
+      my ($self, $p) = @_;
+      my %ps = %$params;
+      return exists $ps{$p};
+    };
+
+    # This returns a *copy* of the class params, not a reference.
+    my $parameters  = sub {
+      my $self = shift;
+      my @which = @_ || keys %{$params};
+      my %data = $params->{@which};
+      return \%data;
+    };
+
+    # add the methods to the class
+    {
+      no strict 'refs';
+      *{"$class\::valid_parameters"}  = $valid_parameters;
+      *{"$class\::is_valid_parameter"} = $is_valid_parameter;
+      *{"$class\::parameters"} = $parameters;
+    }
+
+    # and generate accessors for each of the values
+    foreach my $param ($class->valid_parameters){
+      my $accessor = sub{
+	my $self = shift;
+	if (scalar(@_) > 0){
+	  # need a hook here for validation?
+	  $self->{$param} = shift;
+	}
+	return $self->{$param}
+      };
+      {
+	no strict 'refs';
+	*{"$class\::$param"} = $accessor;
+      }
+    }
+
+    return 1;
+}
+
+
+sub new {
   my $class = shift;
-  my $self = 
-
-  # create getters/setters for all of the valid parameters:
-  __PACKAGE__->mk_accessors( keys __PACKAGE__->parameters );
-
+  my $self = $class->SUPER::new(@_); 
+  bless $self, $class;
+  return $self;
 }
 
 
