@@ -2,27 +2,46 @@
 
 =head1 NAME
 
-Bio::Tools::Run::Unafold::Base - Base class for Bioperl compatible Unafold wrappers
+Bio::Tools::Run::WrapperBase::Accessor - Bioperl compatible WrapperBase with accessors
 
 =head1 SYNOPSIS
 
 Do not attempt to directly instantiate objects from this class.
 Use the appropriate subclass.
 
+ package Bio::Tools::Run::atool;
+ use base 'Bio::Tools::Run::rapperBase::Accessor';
+ 
+ BEGIN {
+    my $Parameters = {foo => "a description of foo", 
+                      bar => "a description of bar"};
+    __PACKAGE__->_register_parameters($Parameters);
+ }
+ 
+
+ # and in your code...
+ use Bio::Tools::Run::atool;
+ my $tool = Bio::Tools::Run::atool->new({foo=>123});
+ $tool->bar(321);
+ print $tool->foo()."\n";
+ $tool->is_valid_parameter("foo");     #=> 1
+ $tool->is_valid_parameter("kittens"); #=> 0
+ $tool->valid_parameters; #=> ("foo","bar");
+
 
 =head1 DESCRIPTION
 
-Base class for Bioperl compatible Unafold wrappers
+Base class for Bioperl wrappers around command line tools with support for generation of accessors for parameters.
 
 =cut
 
 use strict;
 use warnings;
 
-package Bio::Tools::Run::Unafold::Base;
+package Bio::Tools::Run::WrapperBase::Accessor;
 use base 'Bio::Tools::Run::WrapperBase';
 
-#
+#use base 'Bio::Tools::Run::WrapperBase::Accessor
 # __PACKAGE__->_set_parameters($param_hash);
 #
 
@@ -35,7 +54,7 @@ use base 'Bio::Tools::Run::WrapperBase';
 
 Title    : _register_parameters
 Usage    : package MyWrapperClass;
-           use base 'Bio::Tools::Run::Unafold::Base';
+           use base 'Bio::Tools::Run::WrapperBase::Accessor';
            my $Parameters = {foo => 'A description of foo', bar => 'A description of bar'};
            __PACKAGE__->_register_parameters($Parameters);
 Function : Creates class methods valid_parameters and is_valid_parameter($name)
@@ -98,6 +117,17 @@ sub new {
   my $class = shift;
   my $self = $class->SUPER::new(@_); 
   bless $self, $class;
+
+  # urgh. I hate this. But the base class constructor 
+  # expects it, so I think we might be stuck with it.
+  my @params = map {uc($_)} $self->valid_parameters;
+  my @values = $self->_rearrange(\@params, @_);
+  
+  foreach (@params){
+    my $param = lc $_;
+    my $val = shift @values;
+    $self->$param($val) if $val;
+  }
   return $self;
 }
 
