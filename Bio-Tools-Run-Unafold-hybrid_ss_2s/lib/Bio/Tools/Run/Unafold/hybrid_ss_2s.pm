@@ -1,24 +1,20 @@
-# ABSTRACT: Bioperl-compatible wrapper for locally running Unafold's hybrid_ss command.
-
+# ABSTRACT: what this module is for
 =head1 NAME
 
-Bio::Tools::Run::Unafold::hybrid_ss - bioperl wrapper for hybrid_ss
+Bio::Tools::Run::Unafold::hybrid_ss_2s - quick description
 
 =head1 SYNOPSIS
 
- my $folder = Bio::Tools::Run::Unafold::hybrid_ss->new();
- my $folder->set_param(
-
+# Synopsis code demonstrating the module goes here
 
 =head1 DESCRIPTION
 
-A Bioperl-compatible wrapper for locally running Unafold's hybrid_ss command
+A description about this module.
 
 =cut 
-
 use strict;
 use warnings;
-package Bio::Tools::Run::Unafold::hybrid_ss;
+package Bio::Tools::Run::Unafold::hybrid_ss_2s;
 
 use base 'Bio::Tools::Run::WrapperBase::Accessor';
 
@@ -31,9 +27,9 @@ __PACKAGE__->_setup
 
    '-params' => {
 		 NA          => 'Nucleic Acid. RNA | DNA. Default is RNA',
-		 tmin        => 'Minimum Temperature. Default is 0',
+		 tmin        => 'Minimum Temperature. Default is 37',
 		 tinc        => 'Temperature Increment. Default is 1',
-		 tmax        => 'Maximum Temperature. Default is 100',
+		 tmax        => 'Maximum Temperature. Default is 37',
 		 sodium      => 'Sodium ion concentration (molar). Default is 1',
 		 magnesium   => 'Magnesium ion concentration (molar). Default is 0',
 		 output      => 'Name output files with the given string as a prefix. Default is ""',
@@ -42,7 +38,8 @@ __PACKAGE__->_setup
 		 mfold       => '[P,W,MAX], perform multiple (suboptimal) tracebacks in the style of mfold. P indicates the percent suboptimality to consider; only structures with energies within P% of the minimum will be output. W indicates the window size; a structure must have at least W basepairs that are each a distance of at least W away from any basepair in a previous structure. MAX represents an absolute limit on the number of structures computed.',
 		 tracebacks  => 'Computes the given number of stochastic tracebacks. Computed according to the Boltzmann probability distribution so that the probability of a structure is its Boltzmann factor divided by the partition function',
 		 maxbp       => 'Bases further apart than the specified number cannot form. Default is no limit',
-		 maxloop     => 'Maximum size of bulge/interior loops. Default is 30'
+		 maxloop     => 'Maximum size of bulge/interior loops. Default is 30',
+		 temperature => 'The temperature at which the minimum free energy folding is computed. Default is 37'
 	      },
    '-switches' => {
 		   polymer     => 'Use salt corrections for polymers instead of oligomers. Boolean. Default is 0',
@@ -79,7 +76,7 @@ sub new {
   $pd = $ENV{UNAFOLD_DIR} unless $pd;
   $self->{program_dir} = $pd if $pd;
 
-  $self->{program_name} = $pn || 'hybrid-ss';
+  $self->{program_name} = $pn || 'hybrid-ss-2s.pl';
 
   return $self;
 
@@ -176,6 +173,8 @@ sub run {
 
   return $exe_string;
 }
+
+
 
 
 =head1 FEEDBACK

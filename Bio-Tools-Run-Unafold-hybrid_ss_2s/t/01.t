@@ -1,23 +1,21 @@
-# Define $UNAFOLD_DIR if unafold executables are not in your path
-# alter $exe if it isn't called hybrid-ss-min
-
 use strict;
 use warnings;
 
 use Bio::Root::Test;
+
 test_begin(-tests => 21);
 my $debug = test_debug();
 
-use_ok( 'Bio::Tools::Run::Unafold::hybrid_ss_min' );
-require_ok( 'Bio::Tools::Run::Unafold::hybrid_ss_min' );
+use_ok( 'Bio::Tools::Run::Unafold::hybrid_ss_2s' );
+require_ok( 'Bio::Tools::Run::Unafold::hybrid_ss_2s' );
 
-my $exe = 'hybrid-ss-min';
+my $exe = 'hybrid-ss-2s.pl';
 
-my $folder = Bio::Tools::Run::Unafold::hybrid_ss_min->new(
+my $folder = Bio::Tools::Run::Unafold::hybrid_ss_2s->new(
 		      -verbose => $debug, 
 		      -program_name => $exe
 							 );
-isa_ok($folder, 'Bio::Tools::Run::Unafold::hybrid_ss_min');
+isa_ok($folder, 'Bio::Tools::Run::Unafold::hybrid_ss_2s');
 
 
 can_ok($folder, 'parameters');
@@ -46,11 +44,10 @@ is($folder->parameter_string(-double_dash => 1), '');
 
 #set some params to test
 $folder->NA('DNA');
-$folder->tmin('60');
-$folder->tmax('60');
+$folder->tmin('62');
+$folder->tmax('62');
 
-
-is($folder->parameter_string(-double_dash => 1), ' --tmin 60 --tmax 60 --NA DNA');
+is($folder->parameter_string(-double_dash => 1), ' --tmin 62 --tmax 62 --NA DNA');
 
 can_ok($folder, 'run');
 
@@ -79,14 +76,7 @@ warn $folder->run($seqobj1, $seqobj2);
 
 
 
-#CGCCCAACTTTTCCCCGCTCTCCCTCCCCTCCCCTCCCCCGAAAGTCCAGCAACAAAGAA
-#AAGGAGTTGGAGCGGCGGCGACGCGGGGGTGGCGGACCGTGGGCGCACAGTTCAGAGGGT
-#AGGACGCGGCGGAGCGAGGAGAGCGACGGGGGAGGGCGGCGGGCAGGCGCGGAGCGGCGC
-#GAGGCGCTGTCCAGGGCTGATTTGCAGATACTGTGGCTCGGGCGGCGCGGCGGCCGGGCG
-#GGGGCGGGATCGAGTTACGGAGCGAGTCACGGGCTGGGCCGGGGGCTGGTGCGGAGCGGC
-#GTGGGCATCGGCCCCCAGCGGAGCACGGGGAGGCCCTTCCGCACGGCGCTGAGATCCGGG
-#GCCACGGAGGCCGGAGCGCCGCTGCTGGTGACCGCGGTCCTGAAACTTCCCCCCTCCGCC
-#CTCCCTCCGCCTCGGG
 
-#warn "\n\n";
-#warn $folder->executable, $folder->run;
+
+
+

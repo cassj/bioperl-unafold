@@ -1,24 +1,21 @@
-# ABSTRACT: Bioperl-compatible wrapper for locally running Unafold's hybrid_ss command.
+# ABSTRACT: Wrapper for Unafold melt.pl
 
 =head1 NAME
 
-Bio::Tools::Run::Unafold::hybrid_ss - bioperl wrapper for hybrid_ss
+Bio::Tools::Run::Unafold::melt - quick description
 
 =head1 SYNOPSIS
 
- my $folder = Bio::Tools::Run::Unafold::hybrid_ss->new();
- my $folder->set_param(
-
+# Synopsis code demonstrating the module goes here
 
 =head1 DESCRIPTION
 
-A Bioperl-compatible wrapper for locally running Unafold's hybrid_ss command
+A description about this module.
 
-=cut 
-
+=cut
 use strict;
 use warnings;
-package Bio::Tools::Run::Unafold::hybrid_ss;
+package Bio::Tools::Run::Unafold::melt;
 
 use base 'Bio::Tools::Run::WrapperBase::Accessor';
 
@@ -31,29 +28,20 @@ __PACKAGE__->_setup
 
    '-params' => {
 		 NA          => 'Nucleic Acid. RNA | DNA. Default is RNA',
-		 tmin        => 'Minimum Temperature. Default is 0',
-		 tinc        => 'Temperature Increment. Default is 1',
-		 tmax        => 'Maximum Temperature. Default is 100',
+		 temperature => 'Temperature for energy minimization, default is 37',
 		 sodium      => 'Sodium ion concentration (molar). Default is 1',
 		 magnesium   => 'Magnesium ion concentration (molar). Default is 0',
-		 output      => 'Name output files with the given string as a prefix. Default is ""',
-		 prohibit    => 'Prohibit all basepairs in the helix from i,j to i+k-1,j-k+1. If j is 0, prohibit bases i to i+k-1 from pairing at all; if i is 0, prohibit bases j to j-k+1 from pairing at all. k defaults to 1',
-		 force       => 'Force all basepairs in the helix from i,j to i+k-1,j-k+1. If j is 0, forces bases i to i+k-1 to be double-stranded; if i is 0, forces bases j to j-k+1 to be double-stranded. k defaults to 1',
-		 mfold       => '[P,W,MAX], perform multiple (suboptimal) tracebacks in the style of mfold. P indicates the percent suboptimality to consider; only structures with energies within P% of the minimum will be output. W indicates the window size; a structure must have at least W basepairs that are each a distance of at least W away from any basepair in a previous structure. MAX represents an absolute limit on the number of structures computed.',
-		 tracebacks  => 'Computes the given number of stochastic tracebacks. Computed according to the Boltzmann probability distribution so that the probability of a structure is its Boltzmann factor divided by the partition function',
-		 maxbp       => 'Bases further apart than the specified number cannot form. Default is no limit',
-		 maxloop     => 'Maximum size of bulge/interior loops. Default is 30'
-	      },
+		 Ct          => 'Total strand concentration (molar)',
+		 maxbp       => 'Bases farther apart than this value cannot form. Default is no limit'
+		},
    '-switches' => {
 		   polymer     => 'Use salt corrections for polymers instead of oligomers. Boolean. Default is 0',
-		   energyOnly  => 'Skips computation of probabilities. Boolean',
 		   noisolate   => 'Prohibit all isolated basepairs. Isolated basepairs are helices of length 2; that is, they do not stack on another basepair on either side. Boolean',
 		   allpairs    => 'Allows basepairs to form between any two nucleotides. Watson-Crick and wobble are default',
 		   nodangle    => 'Removes single-base stacking from consideration. Boolean',
 		   simple      => 'Makes the penalty for multibranch loops constant rather than affine. Boolean',
-		   prefilter   => 'Filter our all basepairs except those in groups of ',
-		   circular    => 'treat sequences as circular rather than linear',
-		   zip         => 'Force zipping up of helices by forcing single-stranded bases to dangle on adjacent basepairs when possible. Boolean',
+		   prefilter   => 'Filter our all basepairs except those in groups of value2 adjacent basepairs, of which value1 can form. Default is 2 of 2',
+		   circular    => 'treat sequences as circular rather than linear'
 		  }
   );
 
@@ -61,9 +49,9 @@ __PACKAGE__->_setup
 =head2 new
 
   Title    : new
-  Usage    : my $hss = Bio::Tools::Run::Unafold::hybrid_ss->new();
+  Usage    : my $hss = Bio::Tools::Run::Unafold::melt->new();
   Function : Constructor
-  Returns  : An object of class Bio::Tools::Run::Unafold::hybrid_ss
+  Returns  : An object of class Bio::Tools::Run::Unafold::melt
   Args     : Any of the command line parameters can be passed to the 
              constructor. It will also accept -program_dir
 
@@ -79,7 +67,7 @@ sub new {
   $pd = $ENV{UNAFOLD_DIR} unless $pd;
   $self->{program_dir} = $pd if $pd;
 
-  $self->{program_name} = $pn || 'hybrid-ss';
+  $self->{program_name} = $pn || 'melt.pl';
 
   return $self;
 
@@ -123,6 +111,22 @@ sub program_dir{
 }
 
 
+=head2 last_result
+
+  Title    : last_result
+  Usage    : my $res = $folder->last_result;
+  Function : Returns the result of the last run.
+  Returns  : A hashref with keys 'dH', 'temp', 'Tm', 'dG', 'dS'
+             or undef
+  Args     : none
+
+=cut
+
+sub last_result{
+    my $self = shift;   
+    return $self->{last_result};
+}
+
 =head2 version
 
   Title    : version
@@ -143,10 +147,10 @@ sub version{
 =head2 run
 
   Title    : run
-  Usage    : $folder->run($bioseq_object, $bioseq_object, ...);
+  Usage    : $folder->run($bioseq_object, $bioseq_object);
   Function : Run the executable with the set parameters
-  Returns  : The location of the output files.
-  Args     : None
+  Returns  : A hashref with keys 'dH', 'temp', 'Tm', 'dG', 'dS'
+  Args     : One or two bioseq objects to melt.
 
 =cut
 
@@ -156,13 +160,25 @@ sub run {
   my @seqs  = @_;
 
   $self->throw('No sequences provided') unless scalar @seqs;
+  $self->throw('Too many sequences provided') if (scalar(@seqs)>2);
 
   my $tempdir = $self->tempdir;
-  my $seqfile = "$tempdir/sequences.txt";
+
+  #write first seq to file
+  my $seqfile = "$tempdir/seq.txt";
   my $seq_out = Bio::SeqIO->new('-file' => ">$seqfile",
 				'-format' => 'raw');
-  foreach(@seqs){
-    $seq_out->write_seq($_);
+  $seq_out->write_seq($seqs[0]);
+  
+  #write out second file if required
+  my $seqfile2;
+  if (scalar(@seqs) == 2){
+    $self->throw("Can't melt 2 sequences when Ct is undefined") unless $self->Ct;
+    $seqfile2 = "$tempdir/seq2.txt";
+    my $seq2_out = Bio::SeqIO->new('-file' => ">$seqfile2",
+				   '-format' => 'raw');
+    $seq2_out->write_seq($seqs[1]);
+
   }
 
   my $exe = $self->executable;
@@ -171,11 +187,22 @@ sub run {
 
   my $param_string = $self->parameter_string(-double_dash=>1);
   my $exe_string = join " ", $exe, $param_string, $seqfile;
+  $exe_string .= " $seqfile2" if $seqfile2;
 
-  my $status = system("cd $tempdir && $exe_string");
+  my $res = `cd $tempdir && $exe_string`;
 
-  return $exe_string;
+  my @res = split "\n", $res;
+  my ($temp) = $res[0] =~ /t\s*=\s*(\d+)/;
+
+  my %results;
+  $results{temp} = $temp;
+  @results{(split /\s+/, $res[1])} = (split /\s+/, $res[2]);
+
+  #might as well hang on to them.
+  $self->{last_result} = \%results;
+  return \%results;
 }
+
 
 
 =head1 FEEDBACK

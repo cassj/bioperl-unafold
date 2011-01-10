@@ -1,31 +1,29 @@
-# Define $UNAFOLD_DIR if unafold executables are not in your path
-# alter $exe if it isn't called hybrid-ss-min
-
 use strict;
 use warnings;
 
 use Bio::Root::Test;
-test_begin(-tests => 21);
+
+test_begin(-tests => 29);
 my $debug = test_debug();
 
-use_ok( 'Bio::Tools::Run::Unafold::hybrid_ss_min' );
-require_ok( 'Bio::Tools::Run::Unafold::hybrid_ss_min' );
+use_ok( 'Bio::Tools::Run::Unafold::melt' );
+require_ok( 'Bio::Tools::Run::Unafold::melt' );
 
-my $exe = 'hybrid-ss-min';
+my $exe = 'melt.pl';
 
-my $folder = Bio::Tools::Run::Unafold::hybrid_ss_min->new(
+my $folder = Bio::Tools::Run::Unafold::melt->new(
 		      -verbose => $debug, 
 		      -program_name => $exe
 							 );
-isa_ok($folder, 'Bio::Tools::Run::Unafold::hybrid_ss_min');
+isa_ok($folder, 'Bio::Tools::Run::Unafold::melt');
 
 
 can_ok($folder, 'parameters');
 can_ok($folder, 'valid_parameters');
 can_ok($folder,  'is_valid_parameter');
 can_ok($folder, 'NA');
-can_ok($folder, 'tmax');
-can_ok($folder, 'prohibit');
+can_ok($folder, 'temperature');
+can_ok($folder, 'Ct');
 
 can_ok($folder, 'program_dir');
 is($folder->program_dir, undef);
@@ -46,13 +44,15 @@ is($folder->parameter_string(-double_dash => 1), '');
 
 #set some params to test
 $folder->NA('DNA');
-$folder->tmin('60');
-$folder->tmax('60');
+$folder->temperature('62');
 
-
-is($folder->parameter_string(-double_dash => 1), ' --tmin 60 --tmax 60 --NA DNA');
+is($folder->parameter_string(-double_dash => 1), ' --temperature 62 --NA DNA');
 
 can_ok($folder, 'run');
+
+#Don't bother keeping tempfiles for this, we just want the dG and Tm
+$folder->save_tempfiles(0);
+
 
 #No sequence given
 throws_ok { $folder->run() } qr/No sequences provided/, 'error ok when no seqs given';
@@ -62,31 +62,46 @@ my $seq1 = 'AGCGTCCTGTGCTGGAATGTGCGGCTCCCGCGAGCTCGCGGCGCAGCAGCAGAAGACCGAGGAGCGCC
 my $seq2 = 'GGGGCGGGATCGAGTTACGGAGCGAGTCACGGGCTGGGCCGGGGGCTGGTGCGGAGCGGCGTGGGCATCGGCCCCCAGCGGAGCACGGGGAGGCCCTTCCGCACGGCGCTGAGATCCGGG';
 
 my $seqobj1 = Bio::PrimarySeq->new ( -seq => $seq1,
-				     -id  => 'A sequence',
+				     -id  => 'A_sequence',
 				     -alphabet => 'dna'
 				   );
 my $seqobj2 = Bio::PrimarySeq->new ( -seq => $seq2,
-				     -id  => 'A sequence',
+				     -id  => 'Another_sequence',
 				     -alphabet => 'dna'
 				   );
 
-#for testing purposes, keep the tempdir:
-$folder->save_tempfiles(1);
 
-warn "\n\n";
-warn $folder->run($seqobj1, $seqobj2);
+throws_ok {$folder->run($seqobj1, $seqobj1, $seqobj1) } qr/Too many sequences/, 'error ok when too many seqs';
 
+throws_ok {$folder->run($seqobj1, $seqobj2)} qr/Ct is undefined/, 'error ok when Ct is undefined';
 
+ok($folder->run($seqobj1));
+can_ok($folder, 'last_result');
 
+is_deeply($folder->last_result,
+	  {
+          'dH' => '-316.5',
+          'temp' => '62',
+          'Tm' => '82.8',
+          'dG' => '-18.5',
+          'dS' => '-889.2'
+	  }
+	 );
 
-#CGCCCAACTTTTCCCCGCTCTCCCTCCCCTCCCCTCCCCCGAAAGTCCAGCAACAAAGAA
-#AAGGAGTTGGAGCGGCGGCGACGCGGGGGTGGCGGACCGTGGGCGCACAGTTCAGAGGGT
-#AGGACGCGGCGGAGCGAGGAGAGCGACGGGGGAGGGCGGCGGGCAGGCGCGGAGCGGCGC
-#GAGGCGCTGTCCAGGGCTGATTTGCAGATACTGTGGCTCGGGCGGCGCGGCGGCCGGGCG
-#GGGGCGGGATCGAGTTACGGAGCGAGTCACGGGCTGGGCCGGGGGCTGGTGCGGAGCGGC
-#GTGGGCATCGGCCCCCAGCGGAGCACGGGGAGGCCCTTCCGCACGGCGCTGAGATCCGGG
-#GCCACGGAGGCCGGAGCGCCGCTGCTGGTGACCGCGGTCCTGAAACTTCCCCCCTCCGCC
-#CTCCCTCCGCCTCGGG
+is_deeply($folder->run($seqobj1),
+	  {
+          'dH' => '-316.5',
+          'temp' => '62',
+          'Tm' => '82.8',
+          'dG' => '-18.5',
+          'dS' => '-889.2'
+	  }
+	 );
 
-#warn "\n\n";
-#warn $folder->executable, $folder->run;
+TODO: {
+  local $TODO = "Parsing of multiple file results not working yet";
+  $folder->Ct(1);
+  ok($folder->run($seqobj1, $seqobj2));
+  is_deeply($folder->last_result, {});
+}
+
