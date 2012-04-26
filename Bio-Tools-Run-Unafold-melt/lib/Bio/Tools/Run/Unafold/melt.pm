@@ -15,8 +15,8 @@ A description about this module.
 =cut
 use strict;
 use warnings;
-package Bio::Tools::Run::Unafold::melt;
 
+package Bio::Tools::Run::Unafold::melt;
 use base 'Bio::Tools::Run::WrapperBase::Accessor';
 
 use Bio::Seq;
@@ -53,20 +53,20 @@ __PACKAGE__->_setup
   Function : Constructor
   Returns  : An object of class Bio::Tools::Run::Unafold::melt
   Args     : Any of the command line parameters can be passed to the 
-             constructor. It will also accept -program_dir
+             constructor. It will also accept -program_dir and 
+             -program_name 
 
 =cut
 
 sub new {
   my $class = shift;
-  my $self = $class->SUPER::new(@_); 
+  my $self = $class->SUPER::new(@_);
   bless $self, $class;
 
   # setup program dir and name
   my ($pd, $pn) =  $self->_rearrange(['program_dir', 'program_name'], @_);
   $pd = $ENV{UNAFOLD_DIR} unless $pd;
   $self->{program_dir} = $pd if $pd;
-
   $self->{program_name} = $pn || 'melt.pl';
 
   return $self;
@@ -169,7 +169,7 @@ sub run {
   my $seq_out = Bio::SeqIO->new('-file' => ">$seqfile",
 				'-format' => 'raw');
   $seq_out->write_seq($seqs[0]);
-  
+
   #write out second file if required
   my $seqfile2;
   if (scalar(@seqs) == 2){

@@ -1,20 +1,25 @@
 use strict;
 use warnings;
 
+#stack trace
+use Carp;
+$SIG{ __DIE__ } = sub { Carp::confess( @_ ) };
+
 use Bio::Root::Test;
 
-test_begin(-tests => 29);
+test_begin(-tests => 26);
 my $debug = test_debug();
 
 use_ok( 'Bio::Tools::Run::Unafold::melt' );
-require_ok( 'Bio::Tools::Run::Unafold::melt' );
 
 my $exe = 'melt.pl';
 
-my $folder = Bio::Tools::Run::Unafold::melt->new(
-		      -verbose => $debug, 
-		      -program_name => $exe
-							 );
+my $folder = Bio::Tools::Run::Unafold::melt->new();
+
+$folder = Bio::Tools::Run::Unafold::melt->new(
+						-verbose => $debug, 
+						 -program_name => $exe
+						);
 isa_ok($folder, 'Bio::Tools::Run::Unafold::melt');
 
 
@@ -51,7 +56,7 @@ is($folder->parameter_string(-double_dash => 1), ' --temperature 62 --NA DNA');
 can_ok($folder, 'run');
 
 #Don't bother keeping tempfiles for this, we just want the dG and Tm
-$folder->save_tempfiles(0);
+$folder->save_tempfiles(0); #?
 
 
 #No sequence given
@@ -100,8 +105,10 @@ is_deeply($folder->run($seqobj1),
 
 TODO: {
   local $TODO = "Parsing of multiple file results not working yet";
-  $folder->Ct(1);
-  ok($folder->run($seqobj1, $seqobj2));
-  is_deeply($folder->last_result, {});
+  #$folder->Ct(1);
+  #ok($folder->run($seqobj1, $seqobj2));
+  #is_deeply($folder->last_result, {});
 }
+
+
 
